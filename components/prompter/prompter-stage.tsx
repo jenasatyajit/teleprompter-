@@ -170,15 +170,22 @@ export function PrompterStage({ onExit, onToggleSettings, settingsOpen }: Props)
     const scroller = scrollRef.current;
     const content = contentRef.current;
     if (!scroller || !content) return;
+    // Resizes come in bursts (e.g. every frame while the settings panel slides open), so
+    // re-measure once the size settles instead of reading every word's position per frame.
+    let settle = 0;
     const ro = new ResizeObserver(() => {
       setViewportH(scroller.clientHeight);
-      measure();
+      window.clearTimeout(settle);
+      settle = window.setTimeout(measure, 90);
     });
     ro.observe(scroller);
     ro.observe(content);
     // Web fonts change glyph metrics after load.
     void document.fonts?.ready.then(measure);
-    return () => ro.disconnect();
+    return () => {
+      window.clearTimeout(settle);
+      ro.disconnect();
+    };
   }, [measure]);
 
   // ---- voice -------------------------------------------------------------
@@ -472,7 +479,12 @@ export function PrompterStage({ onExit, onToggleSettings, settingsOpen }: Props)
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
-      if (t && (t.closest("input, textarea, select, [contenteditable='true']") || t.closest("[role='dialog']"))) {
+      if (
+        t &&
+        t.closest(
+          "input, textarea, select, [contenteditable='true'], [role='dialog'], [role='listbox'], [role='menu'], [data-settings-panel]",
+        )
+      ) {
         return;
       }
       const el = scrollRef.current;

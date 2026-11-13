@@ -1,7 +1,7 @@
 /* Cue service worker: makes the app shell available offline.
  * All scripts and settings live in localStorage, so once the shell is cached the
  * app works without a network (speech recognition itself still needs one). */
-const CACHE = "cue-v1";
+const CACHE = "cue-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -44,8 +44,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Hashed build assets and icons: cache first.
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  // Hashed build assets and static images (icons, logos): cache first.
+  if (url.pathname.startsWith("/_next/static/") || /\.(png|ico|svg)$/.test(url.pathname)) {
     event.respondWith(
       (async () => {
         const cached = await caches.match(req);

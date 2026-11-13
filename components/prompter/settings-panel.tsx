@@ -9,7 +9,9 @@ import {
   FlipHorizontal2,
   FlipVertical2,
   RotateCcw,
+  X,
 } from "lucide-react";
+import { IconButton } from "@/components/icon-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,11 +179,14 @@ function DeepgramKeyField() {
 
 export function SettingsPanel({
   className,
-  title,
+  titleId,
+  onClose,
 }: {
   className?: string;
-  /** Replace the default heading (e.g. with a SheetTitle). */
-  title?: React.ReactNode;
+  /** id for the heading, so a surrounding dialog can reference it. */
+  titleId?: string;
+  /** Shows a close button in the header. */
+  onClose?: () => void;
 }) {
   const s = useSettings((st) => st.settings);
   const set = useSettings((st) => st.set);
@@ -190,11 +195,20 @@ export function SettingsPanel({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 pr-14">
-        {title ?? <h2 className="font-display text-xl">Settings</h2>}
-        <Button variant="ghost" size="sm" onClick={reset}>
-          <RotateCcw /> Reset
-        </Button>
+      <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-3">
+        <h2 id={titleId} className="font-display text-xl">
+          Settings
+        </h2>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={reset}>
+            <RotateCcw /> Reset
+          </Button>
+          {onClose && (
+            <IconButton label="Close settings" shortcut="Esc" size="icon-sm" onClick={onClose}>
+              <X />
+            </IconButton>
+          )}
+        </div>
       </div>
 
       <div className="px-5 pb-4">

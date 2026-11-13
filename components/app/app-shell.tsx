@@ -1,24 +1,25 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Image from "next/image";
 import { SlidersHorizontal } from "lucide-react";
 import { ScriptEditor } from "@/components/app/script-editor";
 import { ScriptSidebar, SidebarToggle } from "@/components/app/script-sidebar";
+import { SettingsDrawer } from "@/components/app/settings-drawer";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { IconButton } from "@/components/icon-button";
 import { PrompterStage } from "@/components/prompter/prompter-stage";
-import { SettingsPanel } from "@/components/prompter/settings-panel";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { useMediaQuery, useMounted } from "@/hooks/use-media-query";
+import { useMounted } from "@/hooks/use-media-query";
 import { useSettings } from "@/lib/settings-store";
+import { APP_NAME } from "@/lib/site";
 import { useUi } from "@/lib/ui-store";
+import { cn } from "@/lib/utils";
 
 type View = "script" | "prompt";
 
 export function AppShell() {
   const mounted = useMounted();
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const mode = useSettings((s) => s.settings.mode);
   const sidebarOpen = useUi((s) => s.sidebarOpen);
   const setSidebarOpen = useUi((s) => s.setSidebarOpen);
@@ -31,66 +32,62 @@ export function AppShell() {
   // Persisted state only exists in the browser; wait for it to avoid hydration mismatches.
   if (!mounted) return <div className="min-h-dvh" aria-busy="true" />;
 
-  const docked = view === "prompt" && isDesktop;
+  const settings = <SettingsDrawer open={settingsOpen} onOpenChange={setSettingsOpen} />;
+
+  if (view === "prompt") {
+    return (
+      <div className="flex h-dvh min-h-0">
+        <main className="flex min-h-0 min-w-0 flex-1">
+          <PrompterStage
+            key={mode}
+            onExit={exitPrompter}
+            onToggleSettings={toggleSettings}
+            settingsOpen={settingsOpen}
+          />
+        </main>
+        {settings}
+      </div>
+    );
+  }
 
   return (
-    <>
-      {view === "script" ? (
-        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen} className="h-dvh min-h-0">
-          <ScriptSidebar />
-          <SidebarInset className="min-h-0 min-w-0 overflow-hidden bg-transparent">
-            <header className="flex shrink-0 items-center justify-between px-3 py-3 sm:px-5">
-              <div className="flex items-center gap-2">
-                <SidebarToggle />
-                <span className="font-display text-2xl italic tracking-tight">
-                  cue<span className="text-primary">.</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <IconButton label="Prompter settings" onClick={toggleSettings}>
-                  <SlidersHorizontal />
-                </IconButton>
-                <ThemeToggle />
-              </div>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <ScriptEditor onStart={() => setView("prompt")} />
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      ) : (
-        <div className="flex h-dvh min-h-0">
-          <main className="flex min-h-0 min-w-0 flex-1">
-            <PrompterStage
-              key={mode}
-              onExit={exitPrompter}
-              onToggleSettings={toggleSettings}
-              settingsOpen={settingsOpen}
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen} className="h-dvh min-h-0">
+      <ScriptSidebar />
+      <SidebarInset className="min-h-0 min-w-0 overflow-hidden bg-transparent">
+        {/* Three columns so the logo stays centered regardless of the side controls' widths. */}
+        <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-3 sm:px-5">
+          <div className="flex items-center gap-2 justify-self-start">
+            <SidebarToggle />
+          </div>
+          <h1 className="m-0 justify-self-center">
+            {/* The wordmark is white; invert it to black in light mode. */}
+            <Image
+              src="/logo-wordmark.png"
+              alt={APP_NAME}
+              width={780}
+              height={120}
+              priority
+              className="h-6 w-auto invert select-none sm:h-7 dark:invert-0"
+              draggable={false}
             />
-          </main>
-          {docked && settingsOpen && (
-            <aside
-              aria-label="Prompter settings"
-              className="w-[22rem] shrink-0 border-l bg-card text-card-foreground"
+          </h1>
+          <div className="flex items-center gap-1 justify-self-end">
+            <IconButton
+              label={settingsOpen ? "Hide settings" : "Prompter settings"}
+              aria-expanded={settingsOpen}
+              className={cn(settingsOpen && "bg-muted text-primary")}
+              onClick={toggleSettings}
             >
-              <SettingsPanel />
-            </aside>
-          )}
+              <SlidersHorizontal />
+            </IconButton>
+            <ThemeToggle />
+          </div>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ScriptEditor onStart={() => setView("prompt")} />
         </div>
-      )}
-
-      {!docked && (
-        <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <SheetContent
-            side={isDesktop ? "right" : "bottom"}
-            className="max-h-[85dvh] gap-0 p-0 data-[side=right]:sm:max-w-sm data-[side=bottom]:rounded-t-2xl"
-          >
-            <SettingsPanel
-              title={<SheetTitle className="font-display text-xl">Settings</SheetTitle>}
-            />
-          </SheetContent>
-        </Sheet>
-      )}
-    </>
+      </SidebarInset>
+      {settings}
+    </SidebarProvider>
   );
 }
